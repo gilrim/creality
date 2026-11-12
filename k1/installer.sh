@@ -1379,6 +1379,7 @@ function cleanup_probe() {
 
     [ -f /usr/data/printer_data/config/prtouch_v3.cfg ] && rm /usr/data/printer_data/config/prtouch_v3.cfg
     $CONFIG_HELPER --remove-include "prtouch_v3.cfg" || exit $?
+    $CONFIG_HELPER --remove-section "prtouch_v3" || exit $?
 
     if [ -f /usr/data/printer_data/config/$probe.cfg ]; then
         rm /usr/data/printer_data/config/$probe.cfg
@@ -1643,6 +1644,7 @@ function setup_loadcells_zoffset() {
 
     # prtouch_v3.cfg and loadcells_zoffset.cfg both define _LOAD_CELL_HOME_Z
     $CONFIG_HELPER --remove-include "prtouch_v3.cfg" || exit $?
+    $CONFIG_HELPER --remove-section "prtouch_v3" || exit $?
 
     $CONFIG_HELPER --remove-section "load_cell_probe" || exit $?
     $CONFIG_HELPER --add-section "load_cell_probe" || exit $?
@@ -1682,6 +1684,13 @@ function setup_prtouch_v3() {
 
     # prtouch_v3.cfg and loadcells_zoffset.cfg both define _LOAD_CELL_HOME_Z
     $CONFIG_HELPER --remove-include "loadcells_zoffset.cfg" || exit $?
+
+    # migrating from loadcells_zoffset: it also adds loadcells_wipe.cfg and a
+    # load_cell_probe section for babystepping, neither of which prtouch_v3
+    # needs (probe is never "loadcells" here, so these can only be leftovers)
+    [ -f /usr/data/printer_data/config/loadcells_wipe.cfg ] && rm /usr/data/printer_data/config/loadcells_wipe.cfg
+    $CONFIG_HELPER --remove-include "loadcells_wipe.cfg" || exit $?
+    $CONFIG_HELPER --remove-section "load_cell_probe" || exit $?
 
     # _LOAD_CELL_HOME_Z probes at the zero reference position, cartotouch, cartographer and beacon already define it
     if [ "$probe" = "bltouch" ] || [ "$probe" = "microprobe" ] || [ "$probe" = "btteddy" ] || [ "$probe" = "eddyng" ] || [ "$probe" = "klicky" ]; then
@@ -2627,7 +2636,7 @@ fi
       exit 1
     fi
 
-    if [ "$probe" = "btteddy" ] && [ "$loadcells_zoffset" != "true" ]; then
+    if [ "$probe" = "btteddy" ] && [ "$loadcells_zoffset" != "true" ] && [ "$prtouch_v3" != "true" ]; then
       if [ "$mode" = "update" ]; then
         echo "FATAL: The btteddy software is no longer supported without using loadcells for z-offset, enable loadcells for z-offset, switch to eddyng or switch to legacy branch!"
         echo "Refer to https://pellcorp.github.io/creality-wiki/btteddy/#loadcells-for-z-offset-required"
@@ -2933,6 +2942,7 @@ fi
           $CONFIG_HELPER --file /usr/data/pellcorp-overrides/printer.cfg --remove-include "loadcells_wipe.cfg" || exit $?
           $CONFIG_HELPER --file /usr/data/pellcorp-overrides/printer.cfg --remove-section "load_cell_probe" || exit $?
           $CONFIG_HELPER --file /usr/data/pellcorp-overrides/printer.cfg --remove-include "prtouch_v3.cfg" || exit $?
+          $CONFIG_HELPER --file /usr/data/pellcorp-overrides/printer.cfg --remove-section "prtouch_v3" || exit $?
         fi
     fi
 
